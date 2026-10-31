@@ -10,6 +10,7 @@ type Props = {
   initialThesis: string | null;
   submittedBy: string | null;
   symbol: string;
+  name?: string | null;
   initialConfidence: number | null;
   thesisUpdatedAt: string | null;
   thesisUpdatedByName: string | null;
@@ -116,12 +117,22 @@ export default function ThesisCard({
   initialThesis,
   submittedBy,
   symbol,
+  name,
   initialConfidence,
   thesisUpdatedAt,
   thesisUpdatedByName,
   thesisUpdatedByDisplay,
   viewCount,
 }: Props) {
+  const ticker = (symbol || "").trim().replace(/^\$+/, "").toUpperCase();
+  const tokenName = (name || "").trim();
+  const thesisHeading = tokenName && ticker
+    ? `${tokenName} ($${ticker}) Thesis`
+    : ticker
+      ? `$${ticker} Thesis`
+      : tokenName
+        ? `${tokenName} Thesis`
+        : "The Thesis";
   const [thesis, setThesis] = useState(initialThesis || "");
   const [confidence, setConfidence] = useState(initialConfidence);
   const [isEditing, setIsEditing] = useState(false);
@@ -272,7 +283,9 @@ export default function ThesisCard({
       <div className="rounded-2xl border border-[#2a2e38] bg-[#0a0b0e] shadow-[0_0_0_1px_rgba(255,255,255,0.03)] py-5 px-5 sm:px-6 relative">
         {/* Top row */}
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h3 className="text-sm font-medium text-[#b8ff3d]">The Thesis</h3>
+          <h1 className="min-w-0 break-words text-sm font-medium text-[#b8ff3d]">
+            {thesisHeading}
+          </h1>
 
           {canEdit && !isEditing && (
             <button
