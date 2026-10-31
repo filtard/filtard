@@ -383,7 +383,7 @@ export default async function TokenPage({
 
             <div className="min-w-0 text-left">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-semibold truncate">{stats.symbol}</h1>
+                <div className="text-xl font-semibold truncate">{stats.symbol}</div>
                 {dbToken?.id && <WatchlistStar tokenId={dbToken.id} />}
               </div>
               <p className="text-sm text-[#8b93a1] truncate">{stats.name}</p>
@@ -494,6 +494,7 @@ export default async function TokenPage({
         initialThesis={dbToken?.thesis || null}
         submittedBy={dbToken?.submitted_by || null}
         symbol={stats.symbol}
+        name={stats.name}
         initialConfidence={dbToken?.confidence ?? null}
         thesisUpdatedAt={dbToken?.thesis_updated_at || null}
         thesisUpdatedByName={editor?.display_name || null}
