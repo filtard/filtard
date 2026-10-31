@@ -30,3 +30,13 @@ export function isReservedUsername(name: string): boolean {
     name.trim().toLowerCase()
   );
 }
+
+// Names that are blocked for signup/profile edits but still resolve as a
+// profile page because an official account owns them.
+export const OFFICIAL_USERNAMES = ["filtard"] as const;
+
+export function isReservedRoute(name: string): boolean {
+  const clean = name.trim().toLowerCase();
+  if ((OFFICIAL_USERNAMES as readonly string[]).includes(clean)) return false;
+  return isReservedUsername(clean);
+}
