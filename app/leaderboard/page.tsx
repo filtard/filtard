@@ -180,38 +180,39 @@ export default async function LeaderboardPage() {
       ) : (
         <>
           <div className="border border-[#1c1f26] rounded-2xl overflow-x-auto">
-            <div className="min-w-[520px]">
-              {/* Header */}
-              <div className="grid grid-cols-[40px_minmax(140px,2fr)_60px_80px_60px_70px] md:grid-cols-[48px_minmax(180px,2.2fr)_70px_90px_90px_90px] gap-2 md:gap-3 px-4 md:px-5 py-3 bg-[#0c0d10] border-b border-[#1c1f26] text-xs text-[#8b93a1] tracking-wide">
-                <div className="text-center">Rank</div>
-                <div>Curator</div>
-                <div className="text-center">Tokens</div>
-                <div className="text-center">Points</div>
-                <div className="text-center">
-                  <span className="md:hidden">X</span>
-                  <span className="hidden md:inline">Multiplier</span>
-                </div>
-                <div className="text-right">Socials</div>
-              </div>
-
+            <table className="w-full table-auto border-collapse">
+              <thead>
+                <tr className="bg-[#0c0d10] border-b border-[#1c1f26] text-xs text-[#8b93a1] tracking-wide">
+                  <th className="px-3 md:px-4 py-3 font-normal text-center whitespace-nowrap">Rank</th>
+                  <th className="px-3 md:px-4 py-3 font-normal text-left whitespace-nowrap">Curator</th>
+                  <th className="px-3 md:px-4 py-3 font-normal text-center whitespace-nowrap">Tokens</th>
+                  <th className="px-3 md:px-4 py-3 font-normal text-center whitespace-nowrap">Points</th>
+                  <th className="px-3 md:px-4 py-3 font-normal text-center whitespace-nowrap">
+                    <span className="md:hidden">X</span>
+                    <span className="hidden md:inline">Multiplier</span>
+                  </th>
+                  <th className="px-3 md:px-4 py-3 font-normal text-right whitespace-nowrap">Socials</th>
+                </tr>
+              </thead>
+              <tbody>
               {leaderboard.map((curator, index) => {
                 const rank = index + 1;
                 const isTop3 = rank <= 3;
 
                 return (
-                  <div
+                  <tr
                     key={curator.id}
-                    className={`grid grid-cols-[40px_minmax(140px,2fr)_60px_80px_60px_70px] md:grid-cols-[48px_minmax(180px,2.2fr)_70px_90px_90px_90px] gap-2 md:gap-3 items-center px-4 md:px-5 py-3.5 border-b border-[#1c1f26] last:border-0 hover:bg-[#14171d] transition ${
+                    className={`border-b border-[#1c1f26] last:border-0 hover:bg-[#14171d] transition ${
                       isTop3 ? "bg-[#b8ff3d]/[0.03]" : ""
                     }`}
                   >
-                    {/* Rank */}
-                    <div className="flex justify-center">
-                      <RankBadge rank={rank} />
-                    </div>
-
-                    {/* Curator */}
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <td className="px-3 md:px-4 py-3.5">
+                      <div className="flex justify-center">
+                        <RankBadge rank={rank} />
+                      </div>
+                    </td>
+                    <td className="px-3 md:px-4 py-3.5">
+                      <div className="flex items-center gap-2.5">
                       {curator.avatar_url ? (
                         <img
                           src={curator.avatar_url}
@@ -223,33 +224,31 @@ export default async function LeaderboardPage() {
                           {(curator.display_name || "U")[0].toUpperCase()}
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Link
-                          href={`/${curator.display_name}`}
-                          className="font-medium text-sm hover:text-[#b8ff3d] transition truncate"
-                        >
-                          {curator.display_name || "Anonymous"}
-                        </Link>
-                        {curator.role === "curator" && <CuratorBadge />}
+                        <div className="flex flex-col items-start">
+                          <Link
+                            href={`/${curator.display_name}`}
+                            className="font-medium text-sm hover:text-[#b8ff3d] transition whitespace-nowrap"
+                          >
+                            {curator.display_name || "Anonymous"}
+                          </Link>
+                          {curator.role === "curator" && (
+                            <div className="mt-0.5">
+                              <CuratorBadge />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Tokens */}
-                    <div className="text-center text-sm font-medium tabular-nums">
+                    </td>
+                    <td className="px-3 md:px-4 py-3.5 text-center text-sm font-medium tabular-nums whitespace-nowrap">
                       {curator.tokens}
-                    </div>
-
-                    {/* Points */}
-                    <div className="text-center text-sm font-semibold text-[#b8ff3d] tabular-nums">
+                    </td>
+                    <td className="px-3 md:px-4 py-3.5 text-center text-sm font-semibold text-[#b8ff3d] tabular-nums whitespace-nowrap">
                       {curator.points.toLocaleString()}
-                    </div>
-
-                    {/* Multiplier / X */}
-                    <div className="text-center text-sm text-[#8b93a1] tabular-nums">
+                    </td>
+                    <td className="px-3 md:px-4 py-3.5 text-center text-sm text-[#8b93a1] tabular-nums whitespace-nowrap">
                       {curator.multiplier.toFixed(1)}×
-                    </div>
-
-                    {/* Socials */}
+                    </td>
+                    <td className="px-3 md:px-4 py-3.5">
                     <div className="flex items-center justify-end gap-1">
                       {curator.twitter_url && (
                         <a
@@ -286,10 +285,12 @@ export default async function LeaderboardPage() {
                         </a>
                       )}
                     </div>
-                  </div>
+                    </td>
+                  </tr>
                 );
               })}
-            </div>
+              </tbody>
+            </table>
           </div>
 
           {/* Formula */}
