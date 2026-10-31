@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import TokenTable from "@/app/components/TokenTable";
 import TipButton from "@/app/components/TipButton";
 import CuratorBadge from "@/app/components/CuratorBadge";
-import { isReservedUsername } from "@/lib/reserved";
+import { isReservedRoute } from "@/lib/reserved";
 
 export const revalidate = 30;
 
@@ -100,7 +100,7 @@ export default async function CuratorPage({
 }) {
   const { username } = await params;
 
-  if (isReservedUsername(username)) {
+  if (isReservedRoute(username)) {
     notFound();
   }
 
