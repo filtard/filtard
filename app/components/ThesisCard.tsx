@@ -1,5 +1,6 @@
 "use client";
 
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 import { useState, useEffect } from "react";
 import { getCurrentUser, supabase } from "@/lib/auth";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,7 @@ type Props = {
   thesisUpdatedAt: string | null;
   thesisUpdatedByName: string | null;
   thesisUpdatedByDisplay: string | null;
+  thesisUpdatedByRole?: string | null;
   viewCount: number;
 };
 
@@ -122,6 +124,7 @@ export default function ThesisCard({
   thesisUpdatedAt,
   thesisUpdatedByName,
   thesisUpdatedByDisplay,
+  thesisUpdatedByRole,
   viewCount,
 }: Props) {
   const ticker = (symbol || "").trim().replace(/^\$+/, "").toUpperCase();
@@ -315,6 +318,7 @@ export default function ThesisCard({
             >
               {thesisUpdatedByDisplay}
             </Link>
+            <VerifiedBadge role={thesisUpdatedByRole ?? null} />
           </div>
         )}
 
