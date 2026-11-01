@@ -11,3 +11,7 @@ export function isStaffRole(role: string | null | undefined): boolean {
 export function publishesImmediately(role: string | null | undefined): boolean {
   return role === "curator" || isStaffRole(role);
 }
+
+export function isVerifiedRole(role: string | null | undefined): boolean {
+  return role === "curator" || isStaffRole(role);
+}

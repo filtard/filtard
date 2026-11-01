@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import TokenTable from "@/app/components/TokenTable";
 import TipButton from "@/app/components/TipButton";
-import CuratorBadge from "@/app/components/CuratorBadge";
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 import { isReservedRoute } from "@/lib/reserved";
 
 export const revalidate = 30;
@@ -147,8 +147,8 @@ export default async function CuratorPage({
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-semibold">
               {curator.display_name || "Anonymous Curator"}
+              <VerifiedBadge role={curator.role} />
             </h1>
-            {curator.role === "curator" && <CuratorBadge />}
 
             <div className="flex items-center gap-2.5">
               {curator.twitter_url && (

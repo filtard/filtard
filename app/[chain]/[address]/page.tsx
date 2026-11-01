@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import CopyButton from "@/app/copy-button";
 import { supabase } from "@/lib/supabase";
 import { getSiteUrl } from "@/lib/site";
-import CuratorBadge from "@/app/components/CuratorBadge";
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 import Link from "next/link";
 import StarRating from "@/app/components/StarRating";
 import WatchlistStar from "@/app/components/WatchlistStar";
@@ -165,7 +165,7 @@ async function getThesisEditor(userId: string | null) {
   if (!userId) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, role")
     .eq("id", userId)
     .maybeSingle();
   return data;
@@ -398,8 +398,8 @@ export default async function TokenPage({
                     >
                       {curator.display_name}
                     </Link>
+                    <VerifiedBadge role={curator.role} />
                   </span>
-                  {curator.role === "curator" && <CuratorBadge />}
                 </p>
               )}
 
@@ -499,6 +499,7 @@ export default async function TokenPage({
         thesisUpdatedAt={dbToken?.thesis_updated_at || null}
         thesisUpdatedByName={editor?.display_name || null}
         thesisUpdatedByDisplay={editor?.display_name || null}
+        thesisUpdatedByRole={editor?.role || null}
         viewCount={viewCount}
       />
 

@@ -1,5 +1,6 @@
 "use client";
 
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 import { useEffect, useState, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ type Token = {
   profiles?: {
     id: string;
     display_name: string | null;
+    role?: string | null;
   } | null;
 };
 
@@ -174,7 +176,8 @@ export default function DashboardPage() {
         thesis,
         profiles!submitted_by (
           id,
-          display_name
+          display_name,
+          role
         )
       `
       )
@@ -650,6 +653,9 @@ export default function DashboardPage() {
                             >
                               {token.profiles.display_name}
                             </Link>
+                          ) : null}
+                          {token.profiles?.display_name ? (
+                            <VerifiedBadge role={token.profiles.role ?? null} />
                           ) : (
                             "Unknown"
                           )}{" "}
@@ -782,6 +788,7 @@ export default function DashboardPage() {
                       >
                         {profile.display_name || "Anonymous"}
                       </Link>
+                      <VerifiedBadge role={profile.role} />
                     </div>
                   </div>
 

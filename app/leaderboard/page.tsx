@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import type { Metadata } from "next";
-import CuratorBadge from "@/app/components/CuratorBadge";
+import VerifiedBadge from "@/app/components/VerifiedBadge";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://filtard.com";
@@ -224,18 +224,14 @@ export default async function LeaderboardPage() {
                           {(curator.display_name || "U")[0].toUpperCase()}
                         </div>
                       )}
-                        <div className="flex flex-col items-start">
+                        <div className="flex items-center whitespace-nowrap text-sm">
                           <Link
                             href={`/${curator.display_name}`}
-                            className="font-medium text-sm hover:text-[#b8ff3d] transition whitespace-nowrap"
+                            className="font-medium hover:text-[#b8ff3d] transition whitespace-nowrap"
                           >
                             {curator.display_name || "Anonymous"}
                           </Link>
-                          {curator.role === "curator" && (
-                            <div className="mt-0.5">
-                              <CuratorBadge />
-                            </div>
-                          )}
+                          <VerifiedBadge role={curator.role} />
                         </div>
                       </div>
                     </td>
