@@ -212,7 +212,7 @@ export default function ThesisCard({
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 rows={10}
-                maxLength={2000}
+                maxLength={3000}
                 placeholder="Write a clear, high-signal thesis. Supports **bold**, - bullets, and [links](url)"
                 className="w-full rounded-xl border border-[#1c1f26] bg-[#101215] px-4 py-3 text-sm text-white placeholder:text-[#5c6573] focus:outline-none focus:border-[#b8ff3d]/50 transition resize-y min-h-[180px]"
               />
@@ -328,7 +328,7 @@ export default function ThesisCard({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={10}
-              maxLength={2000}
+              maxLength={3000}
               className="w-full rounded-xl border border-[#1c1f26] bg-[#101215] px-4 py-3 text-sm text-white focus:outline-none focus:border-[#b8ff3d]/50 transition resize-y min-h-[180px]"
             />
 
