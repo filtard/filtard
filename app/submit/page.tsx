@@ -188,7 +188,7 @@ export default function SubmitPage() {
                 onChange={(e) => setThesis(e.target.value)}
                 required
                 rows={10}
-                maxLength={2000}
+                maxLength={3000}
                 placeholder={`Write a clear, high-signal thesis.
 
 Supports:
@@ -202,7 +202,7 @@ $MADE is tied to an AI agent experiment that routes trading fees...`}
               />
               <div className="mt-1.5 flex justify-between text-xs text-[#5c6573]">
                 <span>Bold, bullets & links supported</span>
-                <span>{thesis.length}/2000</span>
+                <span>{thesis.length}/3000</span>
               </div>
             </div>
 

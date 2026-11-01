@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!thesis || thesis.length > 2000) {
+    if (!thesis || thesis.length > 3000) {
       return NextResponse.json(
-        { error: "Thesis is required (max 2000 characters)" },
+        { error: "Thesis is required (max 3000 characters)" },
         { status: 400 }
       );
     }
