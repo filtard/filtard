@@ -1,32 +1,40 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+// Data only changes when the stats cron runs (once a minute), so let the CDN
+// serve one copy to every open tab.
+export const revalidate = 30;
+
+const CACHE_CONTROL = "public, s-maxage=30, stale-while-revalidate=60";
+
+type StatsRow = {
+  token_id: string;
+  price_usd: number | string | null;
+  change_24h: number | string | null;
+  volume_24h: number | string | null;
+  liquidity: number | string | null;
+  market_cap: number | string | null;
+  txns_24h: number | string | null;
+  pair_created_at: number | string | null;
+};
+
+function num(value: number | string | null): number | null {
+  return value != null ? Number(value) : null;
+}
 
 export async function GET() {
-  const { data: tokens, error: tokensError } = await supabase
-    .from("tokens")
-    .select("id")
-    .eq("status", "approved");
-
-  if (tokensError) {
-    return NextResponse.json({ error: tokensError.message }, { status: 500 });
-  }
-
-  const ids = (tokens || []).map((t) => t.id);
-  if (ids.length === 0) {
-    return NextResponse.json({ stats: {} });
-  }
-
-  const { data: rows, error: statsError } = await supabase
+  const { data: rows, error } = await supabase
     .from("token_stats")
     .select(
-      "token_id, price_usd, change_24h, volume_24h, liquidity, market_cap, txns_24h, pair_created_at"
+      "token_id, price_usd, change_24h, volume_24h, liquidity, market_cap, txns_24h, pair_created_at, tokens!inner(status)"
     )
-    .in("token_id", ids);
+    .eq("tokens.status", "approved");
 
-  if (statsError) {
-    return NextResponse.json({ error: statsError.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 
   const stats: Record<
@@ -42,25 +50,20 @@ export async function GET() {
     }
   > = {};
 
-  for (const row of rows || []) {
+  for (const row of (rows || []) as StatsRow[]) {
     stats[row.token_id] = {
-      priceUsd: row.price_usd != null ? Number(row.price_usd) : null,
-      change24h: row.change_24h != null ? Number(row.change_24h) : null,
-      volume24h: row.volume_24h != null ? Number(row.volume_24h) : null,
-      liquidity: row.liquidity != null ? Number(row.liquidity) : null,
-      marketCap: row.market_cap != null ? Number(row.market_cap) : null,
-      txns24h: row.txns_24h != null ? Number(row.txns_24h) : null,
-      pairCreatedAt:
-        row.pair_created_at != null ? Number(row.pair_created_at) : null,
+      priceUsd: num(row.price_usd),
+      change24h: num(row.change_24h),
+      volume24h: num(row.volume_24h),
+      liquidity: num(row.liquidity),
+      marketCap: num(row.market_cap),
+      txns24h: num(row.txns_24h),
+      pairCreatedAt: num(row.pair_created_at),
     };
   }
 
   return NextResponse.json(
     { stats },
-    {
-      headers: {
-        "Cache-Control": "no-store",
-      },
-    }
+    { headers: { "Cache-Control": CACHE_CONTROL } }
   );
 }

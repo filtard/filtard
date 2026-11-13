@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthFailure, requireStaff } from "@/lib/server-auth";
+import { refreshTokenListPages } from "@/lib/token-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Token not found" }, { status: 404 });
     }
 
+    refreshTokenListPages();
     return NextResponse.json({ success: true, pinned });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

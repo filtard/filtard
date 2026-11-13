@@ -186,6 +186,25 @@ export default function ThesisCard({
       setIsEditing(false);
       setMessage("Saved");
       setTimeout(() => setMessage(""), 2000);
+      // The token page is cached; ask the server to rebuild it so visitors
+      // see the new thesis right away.
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          await fetch("/api/tokens/revalidate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ tokenId }),
+          });
+        }
+      } catch {
+        // The cache refreshes on its own within a minute.
+      }
       router.refresh();
     }
 

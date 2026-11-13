@@ -277,7 +277,7 @@ export default function TokenTable({
         return;
       }
       try {
-        const res = await fetch("/api/token-stats", { cache: "no-store" });
+        const res = await fetch("/api/token-stats");
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled || !data?.stats) return;
@@ -295,7 +295,7 @@ export default function TokenTable({
     }
 
     poll();
-    const interval = setInterval(poll, 15_000);
+    const interval = setInterval(poll, 30_000);
 
     function onVisibility() {
       if (document.visibilityState === "visible") poll();

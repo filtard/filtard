@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 import { supabase } from "@/lib/supabase";
 
+// Rebuilt hourly so new tokens, profiles and rewards show up without a deploy.
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.filtard.com";

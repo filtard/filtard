@@ -1,50 +1,48 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+// Cached (ISR) for 3 minutes; the ticker refreshes on the same interval.
 export const revalidate = 180;
+
+type TopRow = {
+  token_id: string;
+  volume_24h: number | string | null;
+  change_24h: number | string | null;
+  tokens:
+    | { chain: string; address: string; symbol: string | null }
+    | { chain: string; address: string; symbol: string | null }[]
+    | null;
+};
 
 export async function GET() {
   try {
-    const { data: tokens } = await supabase
-      .from("tokens")
+    // True top 5 approved tokens by 24h volume, sorted in the database.
+    const { data, error } = await supabase
+      .from("token_stats")
       .select(
-        `
-        id,
-        chain,
-        address,
-        symbol,
-        token_stats (
-          volume_24h,
-          change_24h
-        )
-      `
+        "token_id, volume_24h, change_24h, tokens!inner(chain, address, symbol, status)"
       )
-      .eq("status", "approved")
-      .limit(20);
+      .eq("tokens.status", "approved")
+      .not("volume_24h", "is", null)
+      .order("volume_24h", { ascending: false })
+      .limit(5);
 
-    if (!tokens || tokens.length === 0) {
-      return NextResponse.json([]);
-    }
+    if (error) throw error;
 
-    const withStats = tokens.map((token) => {
-      const s = Array.isArray(token.token_stats)
-        ? token.token_stats[0]
-        : token.token_stats;
-
-      return {
-        id: token.id,
-        chain: token.chain,
-        address: token.address,
-        symbol: token.symbol,
-        volume24h: s?.volume_24h != null ? Number(s.volume_24h) : 0,
-        change24h: s?.change_24h != null ? Number(s.change_24h) : 0,
-      };
+    const top5 = ((data || []) as TopRow[]).flatMap((row) => {
+      const token = Array.isArray(row.tokens) ? row.tokens[0] : row.tokens;
+      if (!token) return [];
+      return [
+        {
+          id: row.token_id,
+          chain: token.chain,
+          address: token.address,
+          symbol: token.symbol,
+          volume24h: row.volume_24h != null ? Number(row.volume_24h) : 0,
+          change24h: row.change_24h != null ? Number(row.change_24h) : 0,
+        },
+      ];
     });
-
-    const top5 = withStats
-      .sort((a, b) => b.volume24h - a.volume24h)
-      .slice(0, 5);
 
     return NextResponse.json(top5, {
       headers: {
@@ -53,6 +51,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("top-tokens error:", error);
-    return NextResponse.json([], { status: 500 });
+    return NextResponse.json([], {
+      status: 500,
+      headers: { "Cache-Control": "no-store" },
+    });
   }
 }

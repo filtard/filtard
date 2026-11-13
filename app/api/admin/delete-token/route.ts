@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthFailure, requireStaff } from "@/lib/server-auth";
+import { refreshTokenListPages } from "@/lib/token-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    refreshTokenListPages();
 
     return NextResponse.json({
       success: true,

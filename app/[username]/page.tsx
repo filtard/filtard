@@ -6,51 +6,55 @@ import TipButton from "@/app/components/TipButton";
 import VerifiedBadge from "@/app/components/VerifiedBadge";
 import { isReservedRoute } from "@/lib/reserved";
 
-export const revalidate = 30;
+export const revalidate = 60;
 
-type Token = {
+export async function generateStaticParams() {
+  return [];
+}
+
+const USERNAME_RE = /^[A-Za-z0-9_]{1,32}$/;
+
+/** Reject bot and scanner paths (/.env, /wp-login.php) before any query. */
+function assertValidUsername(username: string) {
+  if (!USERNAME_RE.test(username) || isReservedRoute(username)) {
+    notFound();
+  }
+}
+
+type TokenStatsRow = {
+  price_usd: number | string | null;
+  change_24h: number | string | null;
+  volume_24h: number | string | null;
+  liquidity: number | string | null;
+  market_cap: number | string | null;
+  txns_24h: number | string | null;
+  pair_created_at: number | string | null;
+};
+
+type TokenRow = {
   id: string;
   chain: string;
   address: string;
   name: string | null;
   symbol: string | null;
   image_url: string | null;
+  token_stats: TokenStatsRow | TokenStatsRow[] | null;
 };
+
+function num(value: number | string | null | undefined): number | null {
+  return value != null ? Number(value) : null;
+}
 
 async function getCuratorByUsername(username: string) {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select(
+      "id, display_name, avatar_url, role, twitter_url, telegram_url, discord_url, sol_wallet, evm_wallet"
+    )
     .eq("display_name", username.toLowerCase())
-    .single();
+    .maybeSingle();
 
   return profile;
-}
-
-async function getTokenStats(address: string) {
-  try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${address}`,
-      { next: { revalidate: 30 } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const pair = data?.pairs?.[0];
-    if (!pair) return null;
-
-    return {
-      priceUsd: pair.priceUsd ? Number(pair.priceUsd) : null,
-      change24h: pair.priceChange?.h24 ?? null,
-      volume24h: pair.volume?.h24 ?? null,
-      liquidity: pair.liquidity?.usd ?? null,
-      marketCap: pair.marketCap ?? pair.fdv ?? null,
-      txns24h:
-        (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0) || null,
-      pairCreatedAt: pair.pairCreatedAt ?? null,
-    };
-  } catch {
-    return null;
-  }
 }
 
 async function getCuratorRating(tokenIds: string[]) {
@@ -77,6 +81,7 @@ export async function generateMetadata({
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
   const { username } = await params;
+  assertValidUsername(username);
   const name = username.toLowerCase();
 
   const { data: profile } = await supabase
@@ -99,10 +104,7 @@ export default async function CuratorPage({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-
-  if (isReservedRoute(username)) {
-    notFound();
-  }
+  assertValidUsername(username);
 
   const curator = await getCuratorByUsername(username);
   if (!curator) {
@@ -111,22 +113,38 @@ export default async function CuratorPage({
 
   const { data: tokens } = await supabase
     .from("tokens")
-    .select("id, chain, address, name, symbol, image_url")
+    .select(
+      `id, chain, address, name, symbol, image_url,
+      token_stats ( price_usd, change_24h, volume_24h, liquidity, market_cap, txns_24h, pair_created_at )`
+    )
     .eq("submitted_by", curator.id)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 
-  const tokenList = tokens || [];
+  const tokenList = (tokens || []) as TokenRow[];
   const tokenIds = tokenList.map((t) => t.id);
 
   const curatorRating = await getCuratorRating(tokenIds);
 
-  const tokensWithStats = await Promise.all(
-    tokenList.map(async (token: Token) => {
-      const stats = await getTokenStats(token.address);
-      return { ...token, stats };
-    })
-  );
+  // Stats come from token_stats (refreshed by the cron) instead of one
+  // DexScreener call per token; TokenTable keeps them live in the browser.
+  const tokensWithStats = tokenList.map(({ token_stats, ...token }) => {
+    const s = Array.isArray(token_stats) ? token_stats[0] : token_stats;
+    return {
+      ...token,
+      stats: s
+        ? {
+            priceUsd: num(s.price_usd),
+            change24h: num(s.change_24h),
+            volume24h: num(s.volume_24h),
+            liquidity: num(s.liquidity),
+            marketCap: num(s.market_cap),
+            txns24h: num(s.txns_24h),
+            pairCreatedAt: num(s.pair_created_at),
+          }
+        : null,
+    };
+  });
 
   return (
     <div className="max-w-7xl mx-auto">

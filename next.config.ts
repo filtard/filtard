@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The share image route reads its fonts and logo from disk.
+  outputFileTracingIncludes: {
+    "/api/og": ["./assets/fonts/**", "./public/logo.png"],
+  },
   images: {
     remotePatterns: [
       {
@@ -35,6 +39,12 @@ const nextConfig: NextConfig = {
         source: "/admin",
         destination: "/submit",
         permanent: true,
+      },
+      {
+        // Old leaderboard share image, now a static file.
+        source: "/api/og/site",
+        destination: "/og/site.png",
+        permanent: false,
       },
     ];
   },
