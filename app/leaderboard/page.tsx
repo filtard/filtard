@@ -5,7 +5,7 @@ import VerifiedBadge from "@/app/components/VerifiedBadge";
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL || "https://filtard.com";
-const ogImage = `${siteUrl}/api/og/site`;
+const ogImage = `${siteUrl}/og/site.png`;
 
 export const metadata: Metadata = {
   title: "Curator leaderboard",

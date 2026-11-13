@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDexTokenMeta } from "@/lib/dexscreener";
 import { isAuthFailure, requireStaff } from "@/lib/server-auth";
 import { announceApprovedToken } from "@/lib/telegram";
+import { refreshTokenListPages } from "@/lib/token-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    refreshTokenListPages();
     return NextResponse.json({ success: true, approved });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";

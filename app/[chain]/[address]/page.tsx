@@ -11,8 +11,25 @@ import ThesisCard from "@/app/components/ThesisCard";
 import ViewTracker from "@/app/components/ViewTracker";
 import DexChartEmbed from "@/app/components/DexChartEmbed";
 import TokenLiveStats from "@/app/components/TokenLiveStats";
+import { isSubmitChain } from "@/lib/chains";
+import { tokenOgImageUrl } from "@/lib/og-token";
 
-export const revalidate = 20;
+// Cached per token (ISR). Live price, volume and liquidity still update in
+// the browser through TokenLiveStats.
+export const revalidate = 60;
+
+export async function generateStaticParams() {
+  return [];
+}
+
+const ADDRESS_RE = /^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$/;
+
+/** Reject bot and scanner paths before any DexScreener or database call. */
+function assertValidTokenPath(chain: string, address: string) {
+  if (!isSubmitChain(chain.toLowerCase()) || !ADDRESS_RE.test(address)) {
+    notFound();
+  }
+}
 
 type LiveStats = {
   name: string;
@@ -33,7 +50,7 @@ async function getTokenStats(address: string): Promise<LiveStats | null> {
   try {
     const res = await fetch(
       `https://api.dexscreener.com/latest/dex/tokens/${address}`,
-      { next: { revalidate: 20 } }
+      { next: { revalidate: 60 } }
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -155,7 +172,7 @@ async function getTokenRatings(tokenId: string) {
 async function getViewCount(tokenId: string) {
   const { count } = await supabase
     .from("token_views")
-    .select("*", { count: "exact", head: true })
+    .select("token_id", { count: "exact", head: true })
     .eq("token_id", tokenId);
 
   return count || 0;
@@ -192,6 +209,7 @@ export async function generateMetadata({
   params: Promise<{ chain: string; address: string }>;
 }): Promise<Metadata> {
   const { chain, address } = await params;
+  assertValidTokenPath(chain, address);
 
   const [stats, dbToken] = await Promise.all([
     getTokenStats(address),
@@ -201,27 +219,7 @@ export async function generateMetadata({
   const symbol = stats?.symbol || dbToken?.symbol || "???";
   const name = stats?.name || dbToken?.name || "Unknown";
 
-  const cached = Array.isArray(dbToken?.token_stats)
-    ? dbToken?.token_stats[0]
-    : dbToken?.token_stats;
-
-  const priceUsd =
-    stats?.priceUsd ??
-    (cached?.price_usd != null ? Number(cached.price_usd) : null);
-  const change24h =
-    stats?.change24h ??
-    (cached?.change_24h != null ? Number(cached.change_24h) : null);
-  const marketCap =
-    stats?.marketCap ??
-    (cached?.market_cap != null ? Number(cached.market_cap) : null);
-
-  const image = stats?.imageUrl || dbToken?.image_url || null;
   const rawThesis = dbToken?.thesis || null;
-
-  const curatorProfile = Array.isArray(dbToken?.profiles)
-    ? dbToken.profiles[0]
-    : dbToken?.profiles;
-  const curator = curatorProfile?.display_name || null;
 
   function toPlainText(text: string): string {
     return text
@@ -234,20 +232,8 @@ export async function generateMetadata({
   const plainThesis = rawThesis ? toPlainText(rawThesis) : null;
 
   const siteUrl = getSiteUrl();
-  const domain = siteUrl.replace(/^https?:\/\//, "");
 
-  const ogParams = new URLSearchParams({
-    symbol,
-    name,
-    domain,
-  });
-  if (priceUsd != null) ogParams.set("price", String(priceUsd));
-  if (change24h != null) ogParams.set("change", String(change24h));
-  if (marketCap != null) ogParams.set("mcap", String(marketCap));
-  if (image) ogParams.set("image", image);
-  if (curator) ogParams.set("curator", curator);
-
-  const ogImageUrl = `${siteUrl}/api/og?${ogParams.toString()}`;
+  const ogImageUrl = tokenOgImageUrl(siteUrl, chain, address);
 
   const title = `$${symbol}`;
   const description = plainThesis
@@ -289,6 +275,7 @@ export default async function TokenPage({
   params: Promise<{ chain: string; address: string }>;
 }) {
   const { chain, address } = await params;
+  assertValidTokenPath(chain, address);
 
   const [liveStats, dbToken] = await Promise.all([
     getTokenStats(address),

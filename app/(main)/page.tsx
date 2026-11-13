@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import TokenTable from "../components/TokenTable";
+import HomeTokenTable from "../components/HomeTokenTable";
 import type { Metadata } from "next";
 import { getSiteUrl } from "@/lib/site";
 
@@ -37,24 +39,13 @@ export const metadata: Metadata = {
   },
 };
 
-export const revalidate = 30;
+// Cached for everyone (ISR). The chain and "new" filters are applied in the
+// browser by HomeTokenTable, so reading search params here would make every
+// visit a fresh render.
+export const revalidate = 60;
 
-function isRecentlyListed(createdAt: string | null) {
-  if (!createdAt) return false;
-  const ts = new Date(createdAt).getTime();
-  if (!Number.isFinite(ts)) return false;
-  return (Date.now() - ts) / (1000 * 60 * 60) <= 72;
-}
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ chain?: string; new?: string }>;
-}) {
-  const { chain = "all", new: showNew = "" } = await searchParams;
-  const onlyNew = showNew === "true";
-
-  let query = supabase
+export default async function Home() {
+  const { data: tokens } = await supabase
     .from("tokens")
     .select(
       `
@@ -83,12 +74,6 @@ export default async function Home({
     .eq("status", "approved")
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
-
-  if (chain && chain !== "all") {
-    query = query.eq("chain", chain);
-  }
-
-  const { data: tokens } = await query;
 
   const list = (tokens || []) as any[];
 
@@ -135,10 +120,6 @@ export default async function Home({
     };
   });
 
-  const finalTokens = onlyNew
-    ? tokensWithStats.filter((t) => isRecentlyListed(t.created_at ?? null))
-    : tokensWithStats;
-
   return (
     <div className="w-full">
       <div className="mb-5">
@@ -148,7 +129,9 @@ export default async function Home({
         </p>
       </div>
 
-      <TokenTable tokens={finalTokens} currentChain={chain} onlyNew={onlyNew} />
+      <Suspense fallback={<TokenTable tokens={tokensWithStats} />}>
+        <HomeTokenTable tokens={tokensWithStats} />
+      </Suspense>
     </div>
   );
 }

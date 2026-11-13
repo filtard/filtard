@@ -9,6 +9,11 @@ import { getSiteUrl } from "@/lib/site";
 
 export const revalidate = 60;
 
+// Render each post on first visit, then serve it from cache (ISR).
+export async function generateStaticParams() {
+  return [];
+}
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };

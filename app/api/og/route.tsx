@@ -1,23 +1,29 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
+import { isSubmitChain } from "@/lib/chains";
+import { getOgTokenData } from "@/lib/og-token";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
-async function loadGoogleFont(font: string, weight: number) {
-  try {
-    const url = `https://fonts.googleapis.com/css2?family=${font}:wght@${weight}&display=swap`;
-    const css = await (await fetch(url)).text();
-    const resource = css.match(
-      /src: url\((.+)\) format\('(opentype|truetype)'\)/
-    );
-    if (!resource) return null;
-    const response = await fetch(resource[1]);
-    if (!response.ok) return null;
-    return response.arrayBuffer();
-  } catch {
-    return null;
-  }
-}
+// Loaded once per function instance instead of on every request.
+const fontDir = join(process.cwd(), "assets", "fonts");
+const interRegular = readFileSync(join(fontDir, "Inter-Regular.ttf"));
+const interSemiBold = readFileSync(join(fontDir, "Inter-SemiBold.ttf"));
+const logoDataUrl = `data:image/png;base64,${readFileSync(
+  join(process.cwd(), "public", "logo.png")
+).toString("base64")}`;
+
+const fonts = [
+  { name: "Inter", data: interRegular, style: "normal" as const, weight: 400 as const },
+  { name: "Inter", data: interSemiBold, style: "normal" as const, weight: 600 as const },
+];
+
+const CACHE_CONTROL =
+  "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
+
+const ADDRESS_RE = /^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$/;
 
 function formatPrice(raw: string | null): string {
   if (!raw || raw === "null" || raw === "") return "—";
@@ -55,30 +61,37 @@ function formatMcap(raw: string | null): string {
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
-  const symbol = searchParams.get("symbol") || "???";
-  const name = searchParams.get("name") || "Unknown";
-  const priceRaw = searchParams.get("price");
-  const changeRaw = searchParams.get("change");
-  const mcapRaw = searchParams.get("mcap");
-  const imageUrl = searchParams.get("image");
+  let symbol = searchParams.get("symbol") || "???";
+  let name = searchParams.get("name") || "Unknown";
+  let priceRaw = searchParams.get("price");
+  let changeRaw = searchParams.get("change");
+  let mcapRaw = searchParams.get("mcap");
+  let imageUrl = searchParams.get("image");
 
-  const logoUrl = "https://www.filtard.com/logo.png";
+  // New stable links: /api/og?chain=..&address=..&v=<hour>.
+  // Old links that carry the values in the URL keep working.
+  const chain = (searchParams.get("chain") || "").toLowerCase();
+  const address = (searchParams.get("address") || "").trim();
+  if (chain && address) {
+    if (!isSubmitChain(chain) || !ADDRESS_RE.test(address)) {
+      return new Response("Not found", { status: 404 });
+    }
+    const data = await getOgTokenData(chain, address);
+    if (data) {
+      symbol = data.symbol || symbol;
+      name = data.name || name;
+      priceRaw = data.priceUsd != null ? String(data.priceUsd) : null;
+      changeRaw = data.change24h != null ? String(data.change24h) : null;
+      mcapRaw = data.marketCap != null ? String(data.marketCap) : null;
+      imageUrl = data.imageUrl;
+    }
+  }
+
+  const logoUrl = logoDataUrl;
 
   const price = formatPrice(priceRaw);
   const change = formatChange(changeRaw);
   const mcap = formatMcap(mcapRaw);
-
-  const [inter400, inter600, inter700] = await Promise.all([
-    loadGoogleFont("Inter", 400),
-    loadGoogleFont("Inter", 600),
-    loadGoogleFont("Inter", 700),
-  ]);
-
-  const fonts = [
-    inter400 && { name: "Inter", data: inter400, style: "normal" as const, weight: 400 as const },
-    inter600 && { name: "Inter", data: inter600, style: "normal" as const, weight: 600 as const },
-    inter700 && { name: "Inter", data: inter700, style: "normal" as const, weight: 700 as const },
-  ].filter(Boolean) as { name: string; data: ArrayBuffer; style: "normal"; weight: 400 | 600 | 700 }[];
 
   return new ImageResponse(
     (
@@ -177,7 +190,7 @@ export async function GET(request: NextRequest) {
                   style={{
                     display: "flex",
                     fontSize: 56,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: "#f4f6f8",
                     lineHeight: 1.1,
                     letterSpacing: "-0.03em",
@@ -333,7 +346,7 @@ export async function GET(request: NextRequest) {
       width: 1200,
       height: 630,
       headers: {
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": CACHE_CONTROL,
       },
       fonts,
     }
