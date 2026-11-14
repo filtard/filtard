@@ -169,11 +169,11 @@ export default async function PerformancePage() {
                   </div>
                 </div>
 
-                {/* Before / After with center divider + arrow */}
+                {/* Before / After with balanced center divider + arrow */}
                 <div className="relative border-t border-[#1c1f26] pt-4">
                   <div className="flex">
-                    {/* Before */}
-                    <div className="flex-1 pr-5">
+                    {/* Before — more right clearance */}
+                    <div className="flex-1 pr-8">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-white" />
                         <span className="text-[10px] text-[#6b7280] uppercase tracking-wider">Before</span>
@@ -182,8 +182,8 @@ export default async function PerformancePage() {
                       <div className="text-base font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
                     </div>
 
-                    {/* After */}
-                    <div className="flex-1 pl-5">
+                    {/* After — more left clearance so it sits further right */}
+                    <div className="flex-1 pl-10">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
                         <span className="text-[10px] text-[#22c55e] uppercase tracking-wider">After</span>
