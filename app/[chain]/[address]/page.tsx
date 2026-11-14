@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import CopyButton from "@/app/copy-button";
 import { supabase } from "@/lib/supabase";
 import { getSiteUrl } from "@/lib/site";
@@ -76,44 +77,9 @@ async function getTokenStats(address: string): Promise<LiveStats | null> {
   }
 }
 
-async function getTokenFromDb(chain: string, address: string) {
-  let { data } = await supabase
-    .from("tokens")
-    .select(
-      `
-      id,
-      chain,
-      address,
-      name,
-      symbol,
-      image_url,
-      status,
-      submitted_by,
-      thesis,
-      confidence,
-      thesis_updated_at,
-      thesis_updated_by,
-      token_stats (
-        price_usd,
-        change_24h,
-        volume_24h,
-        liquidity,
-        market_cap
-      ),
-      profiles!submitted_by (
-        id,
-        display_name,
-        avatar_url,
-        role
-      )
-    `
-    )
-    .eq("chain", chain.toLowerCase())
-    .ilike("address", address)
-    .maybeSingle();
-
-  if (!data) {
-    const result = await supabase
+const getCachedTokenFromDb = unstable_cache(
+  async (chain: string, address: string) => {
+    let { data } = await supabase
       .from("tokens")
       .select(
         `
@@ -144,49 +110,100 @@ async function getTokenFromDb(chain: string, address: string) {
         )
       `
       )
+      .eq("chain", chain.toLowerCase())
       .ilike("address", address)
       .maybeSingle();
 
-    data = result.data;
-  }
+    if (!data) {
+      const result = await supabase
+        .from("tokens")
+        .select(
+          `
+          id,
+          chain,
+          address,
+          name,
+          symbol,
+          image_url,
+          status,
+          submitted_by,
+          thesis,
+          confidence,
+          thesis_updated_at,
+          thesis_updated_by,
+          token_stats (
+            price_usd,
+            change_24h,
+            volume_24h,
+            liquidity,
+            market_cap
+          ),
+          profiles!submitted_by (
+            id,
+            display_name,
+            avatar_url,
+            role
+          )
+        `
+        )
+        .ilike("address", address)
+        .maybeSingle();
 
-  return data;
-}
+      data = result.data;
+    }
 
-async function getTokenRatings(tokenId: string) {
-  const { data } = await supabase
-    .from("ratings")
-    .select("stars")
-    .eq("token_id", tokenId);
+    return data;
+  },
+  ["token-from-db"],
+  { revalidate: 60 }
+);
 
-  if (!data || data.length === 0) {
-    return { average: 0, count: 0 };
-  }
+const getCachedTokenRatings = unstable_cache(
+  async (tokenId: string) => {
+    const { data } = await supabase
+      .from("ratings")
+      .select("stars")
+      .eq("token_id", tokenId);
 
-  const sum = data.reduce((acc, r) => acc + r.stars, 0);
-  const average = Number((sum / data.length).toFixed(1));
+    if (!data || data.length === 0) {
+      return { average: 0, count: 0 };
+    }
 
-  return { average, count: data.length };
-}
+    const sum = data.reduce((acc, r) => acc + r.stars, 0);
+    const average = Number((sum / data.length).toFixed(1));
 
-async function getViewCount(tokenId: string) {
-  const { count } = await supabase
-    .from("token_views")
-    .select("token_id", { count: "exact", head: true })
-    .eq("token_id", tokenId);
+    return { average, count: data.length };
+  },
+  ["token-ratings"],
+  { revalidate: 300 }
+);
 
-  return count || 0;
-}
+const getCachedViewCount = unstable_cache(
+  async (tokenId: string) => {
+    const { count } = await supabase
+      .from("token_views")
+      .select("token_id", { count: "exact", head: true })
+      .eq("token_id", tokenId);
 
-async function getThesisEditor(userId: string | null) {
-  if (!userId) return null;
-  const { data } = await supabase
-    .from("profiles")
-    .select("display_name, role")
-    .eq("id", userId)
-    .maybeSingle();
-  return data;
-}
+    return count || 0;
+  },
+  ["token-view-count"],
+  { revalidate: 60 }
+);
+
+const getCachedThesisEditor = unstable_cache(
+  async (userId: string | null) => {
+    if (!userId) return null;
+    const { data } = await supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("id", userId)
+      .maybeSingle();
+    return data;
+  },
+  ["thesis-editor"],
+  { revalidate: 300 }
+);
 
 function formatUsd(n: number | null) {
   if (n == null) return "—";
@@ -213,7 +230,7 @@ export async function generateMetadata({
 
   const [stats, dbToken] = await Promise.all([
     getTokenStats(address),
-    getTokenFromDb(chain, address),
+    getCachedTokenFromDb(chain, address),
   ]);
 
   const symbol = stats?.symbol || dbToken?.symbol || "???";
@@ -279,7 +296,7 @@ export default async function TokenPage({
 
   const [liveStats, dbToken] = await Promise.all([
     getTokenStats(address),
-    getTokenFromDb(chain, address),
+    getCachedTokenFromDb(chain, address),
   ]);
 
   if (!dbToken && !liveStats) {
@@ -317,11 +334,11 @@ export default async function TokenPage({
 
   const [ratings, viewCount, editor] = await Promise.all([
     dbToken?.id
-      ? getTokenRatings(dbToken.id)
+      ? getCachedTokenRatings(dbToken.id)
       : Promise.resolve({ average: 0, count: 0 }),
-    dbToken?.id ? getViewCount(dbToken.id) : Promise.resolve(0),
+    dbToken?.id ? getCachedViewCount(dbToken.id) : Promise.resolve(0),
     dbToken?.thesis_updated_by
-      ? getThesisEditor(dbToken.thesis_updated_by)
+      ? getCachedThesisEditor(dbToken.thesis_updated_by)
       : Promise.resolve(null),
   ]);
 
