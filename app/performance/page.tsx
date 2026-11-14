@@ -164,18 +164,28 @@ export default async function PerformancePage() {
                 </div>
               </div>
 
-              {/* Before / After — Mcap only */}
-              <div className="grid grid-cols-2 gap-0 border-t border-[#1c1f26] pt-4">
-                <div className="pr-4">
-                  <div className="text-[10px] text-[#6b7280] uppercase tracking-wider mb-2">Before</div>
-                  <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="text-base font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
+              {/* Before / After with center arrow — Mcap only */}
+              <div className="relative border-t border-[#1c1f26] pt-4">
+                <div className="grid grid-cols-2 gap-0">
+                  <div className="pr-6">
+                    <div className="text-[10px] text-[#6b7280] uppercase tracking-wider mb-2">Before</div>
+                    <div className="text-xs text-[#8b93a1]">Mcap</div>
+                    <div className="text-base font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
+                  </div>
+                  <div className="pl-6">
+                    <div className="text-[10px] text-[#22c55e] uppercase tracking-wider mb-2">After</div>
+                    <div className="text-xs text-[#8b93a1]">Mcap</div>
+                    <div className="text-base font-medium text-[#22c55e] mt-0.5">
+                      {formatUsd(t.currentMcap)}
+                    </div>
+                  </div>
                 </div>
-                <div className="pl-4 border-l border-[#1c1f26]">
-                  <div className="text-[10px] text-[#22c55e] uppercase tracking-wider mb-2">After</div>
-                  <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="text-base font-medium text-[#22c55e] mt-0.5">
-                    {formatUsd(t.currentMcap)}
+                {/* Center arrow */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 mt-1">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full border border-[#1c1f26] bg-[#07080a] text-[#6b7280]">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -189,6 +199,11 @@ export default async function PerformancePage() {
                   </p>
                 </div>
               )}
+
+              {/* Domain footer */}
+              <div className="mt-4 text-[10px] text-[#4b5563] text-center tracking-wide">
+                filtard.com
+              </div>
             </Link>
           ))}
         </div>
