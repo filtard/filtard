@@ -34,7 +34,6 @@ type TokenRow = {
 type Winner = TokenRow & {
   currentMcap: number;
   initialMcap: number;
-  currentPrice: number | null;
   pnl: number;
   thesisSnippet: string;
 };
@@ -74,8 +73,7 @@ export default async function PerformancePage() {
       initial_mcap,
       approved_at,
       token_stats (
-        market_cap,
-        price_usd
+        market_cap
       )
     `
     )
@@ -93,7 +91,6 @@ export default async function PerformancePage() {
       const stats = Array.isArray(t.token_stats) ? t.token_stats[0] : t.token_stats;
       const currentMcap = stats?.market_cap != null ? Number(stats.market_cap) : null;
       const initialMcap = t.initial_mcap != null ? Number(t.initial_mcap) : null;
-      const currentPrice = stats?.price_usd != null ? Number(stats.price_usd) : null;
 
       if (!initialMcap || initialMcap <= 0 || !currentMcap) return null;
 
@@ -104,7 +101,6 @@ export default async function PerformancePage() {
         ...t,
         currentMcap,
         initialMcap,
-        currentPrice,
         pnl,
         thesisSnippet: truncate(t.thesis),
       };
@@ -131,10 +127,12 @@ export default async function PerformancePage() {
               href={`/${t.chain}/${t.address}`}
               className="block rounded-2xl border border-[#1c1f26] bg-[#07080a] p-5 hover:border-[#2a2e36] transition-colors"
             >
-              {/* Top brand */}
-              <div className="flex items-center gap-2 mb-5">
-                <img src="/logo.png" alt="" className="h-6 w-6 object-contain" />
-                <span className="text-sm font-semibold tracking-wide">Filtard</span>
+              {/* Top right brand */}
+              <div className="flex justify-end mb-4">
+                <div className="flex items-center gap-1.5">
+                  <img src="/logo.png" alt="" className="h-5 w-5 object-contain" />
+                  <span className="text-xs font-semibold tracking-wide text-[#c8cdd6]">Filtard</span>
+                </div>
               </div>
 
               {/* Token identity */}
@@ -143,13 +141,13 @@ export default async function PerformancePage() {
                   <img
                     src={t.image_url}
                     alt=""
-                    className="h-11 w-11 rounded-full object-cover flex-shrink-0"
+                    className="h-12 w-12 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="h-11 w-11 rounded-full bg-[#1c1f26] flex-shrink-0" />
+                  <div className="h-12 w-12 rounded-full bg-[#1c1f26] flex-shrink-0" />
                 )}
                 <div className="min-w-0">
-                  <div className="font-semibold text-base leading-tight truncate">
+                  <div className="font-semibold text-lg leading-tight truncate">
                     {t.name || "Unknown"}
                   </div>
                   <div className="text-sm text-[#8b93a1]">${t.symbol}</div>
@@ -161,32 +159,24 @@ export default async function PerformancePage() {
                 <div className="text-5xl font-bold text-[#22c55e] leading-none">
                   +{Math.round(t.pnl)}%
                 </div>
-                <div className="text-[11px] text-[#6b7280] tracking-[0.12em] mt-2 uppercase">
+                <div className="text-[11px] text-[#6b7280] tracking-[0.1em] mt-2 uppercase">
                   PnL since listing on Filtard
                 </div>
               </div>
 
-              {/* Before / After */}
+              {/* Before / After — Mcap only */}
               <div className="grid grid-cols-2 gap-0 border-t border-[#1c1f26] pt-4">
                 <div className="pr-4">
                   <div className="text-[10px] text-[#6b7280] uppercase tracking-wider mb-2">Before</div>
                   <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="text-sm font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
+                  <div className="text-base font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
                 </div>
                 <div className="pl-4 border-l border-[#1c1f26]">
                   <div className="text-[10px] text-[#22c55e] uppercase tracking-wider mb-2">After</div>
                   <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="text-sm font-medium text-[#22c55e] mt-0.5">
+                  <div className="text-base font-medium text-[#22c55e] mt-0.5">
                     {formatUsd(t.currentMcap)}
                   </div>
-                  {t.currentPrice != null && (
-                    <>
-                      <div className="text-xs text-[#8b93a1] mt-2">Price</div>
-                      <div className="text-sm font-medium text-[#22c55e] mt-0.5">
-                        {formatUsd(t.currentPrice)}
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
 
@@ -199,10 +189,6 @@ export default async function PerformancePage() {
                   </p>
                 </div>
               )}
-
-              <div className="mt-4 text-[10px] text-[#4b5563] text-center tracking-wide">
-                filtard.com
-              </div>
             </Link>
           ))}
         </div>
