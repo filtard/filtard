@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   },
 };
 
-// Long ISR so Vercel CPU stays low. Page is cheap to render.
 export const revalidate = 300;
 
 type TokenRow = {
@@ -49,7 +48,7 @@ function formatUsd(n: number | null | undefined) {
   return `$${n.toPrecision(3)}`;
 }
 
-function truncate(text: string | null, max = 140) {
+function truncate(text: string | null, max = 120) {
   if (!text) return "";
   const plain = text
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
@@ -125,73 +124,65 @@ export default async function PerformancePage() {
       {winners.length === 0 ? (
         <p className="text-[#8b93a1]">No positive performers yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {winners.map((t) => (
             <Link
               key={t.id}
               href={`/${t.chain}/${t.address}`}
-              className="block rounded-2xl border border-[#1c1f26] bg-[#0d0f12] p-5 hover:border-[#2a2e36] transition"
+              className="block rounded-2xl border border-[#1c1f26] bg-[#07080a] p-5 hover:border-[#2a2e36] transition-colors"
             >
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-4">
-                <img
-                  src="/logo.png"
-                  alt=""
-                  className="h-7 w-7 rounded-md object-contain"
-                />
-                <div className="text-sm font-medium text-[#8b93a1]">Filtard</div>
+              {/* Top brand */}
+              <div className="flex items-center gap-2 mb-5">
+                <img src="/logo.png" alt="" className="h-6 w-6 object-contain" />
+                <span className="text-sm font-semibold tracking-wide">Filtard</span>
               </div>
 
-              {/* Token */}
-              <div className="flex items-center gap-3 mb-5">
+              {/* Token identity */}
+              <div className="flex items-center gap-3 mb-6">
                 {t.image_url ? (
                   <img
                     src={t.image_url}
                     alt=""
-                    className="h-12 w-12 rounded-full object-cover"
+                    className="h-11 w-11 rounded-full object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="h-12 w-12 rounded-full bg-[#1c1f26]" />
+                  <div className="h-11 w-11 rounded-full bg-[#1c1f26] flex-shrink-0" />
                 )}
-                <div>
-                  <div className="font-semibold text-lg leading-tight">
-                    {t.name || t.symbol || "Unknown"}
+                <div className="min-w-0">
+                  <div className="font-semibold text-base leading-tight truncate">
+                    {t.name || "Unknown"}
                   </div>
                   <div className="text-sm text-[#8b93a1]">${t.symbol}</div>
                 </div>
               </div>
 
-              {/* Big PnL */}
-              <div className="text-center mb-5">
-                <div className="text-5xl font-bold text-[#22c55e]">
-                  +{t.pnl.toFixed(0)}%
+              {/* Big percentage */}
+              <div className="text-center mb-6">
+                <div className="text-5xl font-bold text-[#22c55e] leading-none">
+                  +{Math.round(t.pnl)}%
                 </div>
-                <div className="text-xs text-[#6b7280] tracking-wider mt-1">
-                  PNL SINCE LISTING ON FILTARD
+                <div className="text-[11px] text-[#6b7280] tracking-[0.12em] mt-2 uppercase">
+                  PnL since listing on Filtard
                 </div>
               </div>
 
               {/* Before / After */}
-              <div className="grid grid-cols-2 gap-4 border-t border-[#1c1f26] pt-4 mb-4">
-                <div>
-                  <div className="text-[11px] text-[#6b7280] uppercase tracking-wider mb-1">
-                    Before
-                  </div>
+              <div className="grid grid-cols-2 gap-0 border-t border-[#1c1f26] pt-4">
+                <div className="pr-4">
+                  <div className="text-[10px] text-[#6b7280] uppercase tracking-wider mb-2">Before</div>
                   <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="font-medium">{formatUsd(t.initialMcap)}</div>
+                  <div className="text-sm font-medium mt-0.5">{formatUsd(t.initialMcap)}</div>
                 </div>
-                <div>
-                  <div className="text-[11px] text-[#6b7280] uppercase tracking-wider mb-1">
-                    After
-                  </div>
+                <div className="pl-4 border-l border-[#1c1f26]">
+                  <div className="text-[10px] text-[#22c55e] uppercase tracking-wider mb-2">After</div>
                   <div className="text-xs text-[#8b93a1]">Mcap</div>
-                  <div className="font-medium text-[#22c55e]">
+                  <div className="text-sm font-medium text-[#22c55e] mt-0.5">
                     {formatUsd(t.currentMcap)}
                   </div>
                   {t.currentPrice != null && (
                     <>
                       <div className="text-xs text-[#8b93a1] mt-2">Price</div>
-                      <div className="font-medium text-[#22c55e]">
+                      <div className="text-sm font-medium text-[#22c55e] mt-0.5">
                         {formatUsd(t.currentPrice)}
                       </div>
                     </>
@@ -201,18 +192,15 @@ export default async function PerformancePage() {
 
               {/* Thesis */}
               {t.thesisSnippet && (
-                <div className="border-t border-[#1c1f26] pt-3">
-                  <div className="text-[11px] text-[#22c55e] uppercase tracking-wider mb-1">
-                    Thesis
-                  </div>
-                  <p className="text-sm text-[#c8cdd6] leading-snug">
+                <div className="mt-4 pt-3 border-t border-[#1c1f26]">
+                  <div className="text-[10px] text-[#22c55e] uppercase tracking-wider mb-1.5">Thesis</div>
+                  <p className="text-sm text-[#c8cdd6] leading-snug line-clamp-3">
                     {t.thesisSnippet}
                   </p>
                 </div>
               )}
 
-              {/* Footer domain */}
-              <div className="mt-4 text-[10px] text-[#4b5563] text-center">
+              <div className="mt-4 text-[10px] text-[#4b5563] text-center tracking-wide">
                 filtard.com
               </div>
             </Link>
