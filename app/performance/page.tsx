@@ -32,6 +32,14 @@ type TokenRow = {
   token_stats: { market_cap: number | null; price_usd: number | null }[] | { market_cap: number | null; price_usd: number | null } | null;
 };
 
+type Winner = TokenRow & {
+  currentMcap: number;
+  initialMcap: number;
+  currentPrice: number | null;
+  pnl: number;
+  thesisSnippet: string;
+};
+
 function formatUsd(n: number | null | undefined) {
   if (n == null || !Number.isFinite(n)) return "—";
   if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
@@ -81,8 +89,8 @@ export default async function PerformancePage() {
 
   const rows = (data || []) as TokenRow[];
 
-  const winners = rows
-    .map((t) => {
+  const winners: Winner[] = rows
+    .map((t): Winner | null => {
       const stats = Array.isArray(t.token_stats) ? t.token_stats[0] : t.token_stats;
       const currentMcap = stats?.market_cap != null ? Number(stats.market_cap) : null;
       const initialMcap = t.initial_mcap != null ? Number(t.initial_mcap) : null;
@@ -102,8 +110,8 @@ export default async function PerformancePage() {
         thesisSnippet: truncate(t.thesis),
       };
     })
-    .filter(Boolean)
-    .sort((a, b) => (b!.pnl - a!.pnl)) as NonNullable<typeof winners[number]>[];
+    .filter((t): t is Winner => t !== null)
+    .sort((a, b) => b.pnl - a.pnl);
 
   return (
     <div className="w-full px-3 md:px-6 py-6 md:py-8">
