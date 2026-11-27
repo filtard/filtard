@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { isSubmitChain } from "@/lib/chains";
@@ -7,18 +6,61 @@ import { getOgTokenData } from "@/lib/og-token";
 
 export const runtime = "nodejs";
 
-// Loaded once per function instance instead of on every request.
-const fontDir = join(process.cwd(), "assets", "fonts");
-const interRegular = readFileSync(join(fontDir, "Inter-Regular.ttf"));
-const interSemiBold = readFileSync(join(fontDir, "Inter-SemiBold.ttf"));
-const logoDataUrl = `data:image/png;base64,${readFileSync(
-  join(process.cwd(), "public", "logo.png")
-).toString("base64")}`;
+type OgFont = {
+  name: string;
+  data: ArrayBuffer;
+  style: "normal";
+  weight: 400 | 600;
+};
 
-const fonts = [
-  { name: "Inter", data: interRegular, style: "normal" as const, weight: 400 as const },
-  { name: "Inter", data: interSemiBold, style: "normal" as const, weight: 600 as const },
-];
+// Fonts and logo are static assets. They are loaded once per Worker
+// isolate through the ASSETS binding instead of on every request.
+let assetsPromise: Promise<{ fonts: OgFont[]; logoDataUrl: string }> | null =
+  null;
+
+async function fetchAsset(path: string, origin: string): Promise<ArrayBuffer> {
+  let res: Response | undefined;
+  try {
+    const assets = getCloudflareContext().env.ASSETS;
+    if (assets) res = await assets.fetch(new URL(path, "https://assets.local"));
+  } catch {
+    // Not running on Workers (local next dev): fall back to the origin.
+  }
+  if (!res || !res.ok) res = await fetch(new URL(path, origin));
+  if (!res.ok) throw new Error(`Asset ${path} failed: ${res.status}`);
+  return res.arrayBuffer();
+}
+
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(bin);
+}
+
+function loadAssets(origin: string) {
+  if (!assetsPromise) {
+    assetsPromise = Promise.all([
+      fetchAsset("/_og/Inter-Regular.ttf", origin),
+      fetchAsset("/_og/Inter-SemiBold.ttf", origin),
+      fetchAsset("/logo.png", origin),
+    ])
+      .then(([regular, semiBold, logo]) => ({
+        fonts: [
+          { name: "Inter", data: regular, style: "normal" as const, weight: 400 as const },
+          { name: "Inter", data: semiBold, style: "normal" as const, weight: 600 as const },
+        ],
+        logoDataUrl: `data:image/png;base64,${toBase64(logo)}`,
+      }))
+      .catch((e) => {
+        assetsPromise = null;
+        throw e;
+      });
+  }
+  return assetsPromise;
+}
 
 const CACHE_CONTROL =
   "public, max-age=300, s-maxage=86400, stale-while-revalidate=604800";
@@ -87,6 +129,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const { fonts, logoDataUrl } = await loadAssets(request.nextUrl.origin);
   const logoUrl = logoDataUrl;
 
   const price = formatPrice(priceRaw);

@@ -1,3 +1,5 @@
+import { dexFetch } from "@/lib/dex-fetch";
+
 export type TokenStats = {
   priceUsd: number | null;
   change24h: number | null;
@@ -62,10 +64,10 @@ export async function getTokenStatsBatch(
 
       for (let i = 0; i < unique.length; i += CHUNK) {
         const chunk = unique.slice(i, i + CHUNK);
-        const url = `https://api.dexscreener.com/tokens/v1/${chain}/${chunk.join(",")}`;
+        const url = `/tokens/v1/${chain}/${chunk.join(",")}`;
 
         try {
-          const res = await fetch(url, {
+          const res = await dexFetch(url, {
             next: { revalidate },
           });
 
@@ -106,8 +108,8 @@ export async function getTokenStatsBatch(
     await Promise.all(
       missing.map(async (t) => {
         try {
-          const res = await fetch(
-            `https://api.dexscreener.com/latest/dex/tokens/${t.address}`,
+          const res = await dexFetch(
+            `/latest/dex/tokens/${t.address}`,
             { next: { revalidate } }
           );
           if (!res.ok) return;
@@ -159,8 +161,8 @@ export async function getDexTokenMeta(address: string): Promise<DexTokenMeta> {
   if (!trimmed) return emptyDexTokenMeta;
 
   try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(trimmed)}`,
+    const res = await dexFetch(
+      `/latest/dex/tokens/${encodeURIComponent(trimmed)}`,
       { cache: "no-store" }
     );
     if (!res.ok) return emptyDexTokenMeta;

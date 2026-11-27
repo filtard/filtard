@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { purgeEdgePages } from "@/lib/edge-cache";
 
 /**
  * Pages that list tokens are cached (ISR). Call this after an admin changes
@@ -9,8 +10,9 @@ export function refreshTokenListPages() {
   try {
     revalidatePath("/");
     revalidatePath("/[chain]/[address]", "page");
-    revalidatePath("/[username]", "page");
+    revalidatePath("/[chain]", "page");
     revalidatePath("/leaderboard");
+    purgeEdgePages(["/", "/leaderboard"]);
   } catch (err) {
     console.error("token revalidate failed:", err);
   }
@@ -20,6 +22,7 @@ export function refreshTokenListPages() {
 export function refreshTokenPage(chain: string, address: string) {
   try {
     revalidatePath(`/${chain}/${address}`);
+    purgeEdgePages([`/${chain}/${address}`]);
   } catch (err) {
     console.error("token page revalidate failed:", err);
   }

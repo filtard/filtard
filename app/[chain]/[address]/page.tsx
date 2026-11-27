@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { dexFetch } from "@/lib/dex-fetch";
 import type { Metadata } from "next";
 import CopyButton from "@/app/copy-button";
 import { supabase } from "@/lib/supabase";
@@ -48,8 +49,8 @@ type LiveStats = {
 
 async function getTokenStats(address: string): Promise<LiveStats | null> {
   try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${address}`,
+    const res = await dexFetch(
+      `/latest/dex/tokens/${address}`,
       { next: { revalidate: 60 } }
     );
     if (!res.ok) return null;

@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { dexFetch } from "@/lib/dex-fetch";
 import { supabase } from "@/lib/supabase";
 
 export type OgTokenData = {
@@ -65,8 +66,8 @@ async function loadOgTokenData(
 
   // Not listed on Filtard: fall back to DexScreener (cached for an hour).
   try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(address)}`,
+    const res = await dexFetch(
+      `/latest/dex/tokens/${encodeURIComponent(address)}`,
       { next: { revalidate: 3600 } }
     );
     if (!res.ok) return null;
