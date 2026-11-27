@@ -6,6 +6,7 @@ import { isXAuthorizeUrl } from "@/lib/x-authorize-url";
 
 const STORAGE_KEY = "filtard-x-oauth";
 const HANDOFF_COOKIE = "filtard_x_handoff";
+const DONE_COOKIE = "filtard_x_done";
 const SESSION_COUNT_COOKIE = "filtard_xs_n";
 const SESSION_PART_PREFIX = "filtard_xs_";
 const HANDOFF_TTL_SECONDS = 10 * 60;
@@ -327,6 +328,23 @@ export function clearHandoffCookie(response: NextResponse, request: NextRequest)
   response.cookies.set(HANDOFF_COOKIE, "", cookieOptions(request, 0));
 }
 
+function doneCookieId(request: NextRequest): string | null {
+  const value = request.cookies.get(DONE_COOKIE)?.value ?? "";
+  return isUuid(value) ? value : null;
+}
+
+function setDoneCookie(
+  response: NextResponse,
+  request: NextRequest,
+  id: string
+) {
+  response.cookies.set(
+    DONE_COOKIE,
+    id,
+    cookieOptions(request, HANDOFF_TTL_SECONDS)
+  );
+}
+
 function writeSessionCookies(
   response: NextResponse,
   request: NextRequest,
@@ -397,6 +415,7 @@ function noStore(response: NextResponse) {
 function returnRedirect(request: NextRequest, failed: boolean) {
   const dest = new URL("/auth/inapp/return", request.url);
   if (failed) dest.searchParams.set("error", "1");
+  else dest.searchParams.set("ok", "1");
   return noStore(NextResponse.redirect(dest));
 }
 
@@ -417,6 +436,9 @@ export async function handleXHandoffCallback(request: NextRequest) {
   const row = await claimForExchange(handoffId);
   if (!row) {
     await deleteIfExpired(handoffId);
+    if (idsMatch(doneCookieId(request) ?? "", handoffId)) {
+      return returnRedirect(request, false);
+    }
     return returnRedirect(request, true);
   }
 
@@ -434,7 +456,9 @@ export async function handleXHandoffCallback(request: NextRequest) {
 
   const startedHere = idsMatch(handoffCookieId(request) ?? "", handoffId);
   if (!startedHere) {
-    return returnRedirect(request, false);
+    const response = returnRedirect(request, false);
+    setDoneCookie(response, request, handoffId);
+    return response;
   }
 
   const done = new URL("/auth/inapp/done", request.url);
