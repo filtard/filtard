@@ -1,11 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // The share image route reads its fonts and logo from disk.
-  outputFileTracingIncludes: {
-    "/api/og": ["./assets/fonts/**", "./public/logo.png"],
-  },
   images: {
+    // Token icons are tiny; skip the optimizer so Workers spend no CPU on it.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
@@ -51,3 +49,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();

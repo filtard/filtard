@@ -78,9 +78,11 @@ async function getCuratorRating(tokenIds: string[]) {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ username: string }>;
+  // The folder is [chain] so it shares a slug name with /[chain]/[address];
+  // at this level the segment is a curator username.
+  params: Promise<{ chain: string }>;
 }): Promise<Metadata> {
-  const { username } = await params;
+  const { chain: username } = await params;
   assertValidUsername(username);
   const name = username.toLowerCase();
 
@@ -101,9 +103,11 @@ export async function generateMetadata({
 export default async function CuratorPage({
   params,
 }: {
-  params: Promise<{ username: string }>;
+  // The folder is [chain] so it shares a slug name with /[chain]/[address];
+  // at this level the segment is a curator username.
+  params: Promise<{ chain: string }>;
 }) {
-  const { username } = await params;
+  const { chain: username } = await params;
   assertValidUsername(username);
 
   const curator = await getCuratorByUsername(username);

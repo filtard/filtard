@@ -11,7 +11,6 @@ import Footer from "./components/Footer";
 import RewardsStrip from "./components/RewardsStrip";
 import XHandoffPoller from "./components/XHandoffPoller";
 import { getSiteUrl } from "@/lib/site";
-import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -100,7 +99,6 @@ export default function RootLayout({
 
         <MobileBottomNav />
         <XHandoffPoller />
-        <Analytics />
       </body>
     </html>
   );
