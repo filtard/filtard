@@ -128,8 +128,14 @@ function formatAge(timestamp: number | null) {
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d`;
-  const months = Math.floor(days / 30);
-  return `${months}mo`;
+  if (days < 365) {
+    const months = Math.min(11, Math.floor(days / 30));
+    return `${months}mo`;
+  }
+  const tenths = Math.floor((days / 365) * 10);
+  const whole = Math.floor(tenths / 10);
+  const frac = tenths % 10;
+  return frac === 0 ? `${whole}y` : `${whole}.${frac}y`;
 }
 
 function SortIcon({
